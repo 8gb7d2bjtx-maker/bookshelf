@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="shelf">
+<title>shelf</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #ede3cd;
+    --card:      #fdfbf5;
+    --card-hd:   #f6efe0;
+    --border:    #ddd0ac;
+    --border-lt: #ede4cc;
+    --text:      #2e2418;
+    --text-2:    #8c7a58;
+    --text-3:    #c7b98f;
+    --accent:    #7a5230;
+    --badge-bg:  #ecdfc0;
+    --badge-txt: #7a5230;
+    --del:       #a6483a;
+    --gold:      #b3862f;
+    --shadow: 0 8px 30px rgba(46,36,24,0.14);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); overscroll-behavior: none; }
+
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { padding: 52px 22px 14px; background: var(--bg); position: sticky; top: 0; z-index: 10; }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; color: var(--text); letter-spacing: -0.5px; }
+  header .subtitle { font-size: 13px; color: var(--text-2); margin-top: 3px; font-weight: 300; }
+
+  main { flex: 1; padding: 4px 16px 110px; display: flex; flex-direction: column; gap: 26px; }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; padding: 4px 6px 10px; }
+  .section-head h2 { font-family: 'DM Serif Display', serif; font-size: 19px; font-weight: 400; color: var(--text); }
+  .section-count { font-size: 12px; color: var(--text-3); font-weight: 400; margin-left: 8px; }
+
+  .sort-toggle { display: flex; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2px; }
+  .sort-toggle button { border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 11.5px; color: var(--text-2); padding: 5px 11px; border-radius: 16px; cursor: pointer; }
+  .sort-toggle button.active { background: var(--accent); color: #fff; }
+
+  .card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+  .empty-hint { padding: 22px 18px; font-size: 13px; color: var(--text-3); font-style: italic; text-align: center; }
+
+  .item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--border-lt); position: relative; }
+  .item:first-child { border-top: none; }
+
+  .check-btn { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1.6px solid var(--text-3); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 1px; transition: border-color .15s, background .15s; }
+  .check-btn:active { background: var(--badge-bg); border-color: var(--accent); }
+  .check-btn svg { opacity: 0; width: 13px; height: 13px; }
+
+  .rating-badge { flex-shrink: 0; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px; background: var(--badge-bg); color: var(--badge-txt); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin-top: 1px; cursor: pointer; border: none; letter-spacing: 0.3px; }
+  .rating-badge.dnf { background: #ece0e0; color: var(--text-2); font-size: 9.5px; letter-spacing: 0.5px; }
+  .rating-badge .stars { color: var(--gold); letter-spacing: 1px; }
+
+  .item-body { flex: 1; min-width: 0; }
+  .item-title { font-size: 14.5px; font-weight: 500; color: var(--text); line-height: 1.35; word-break: break-word; }
+  .item-title a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
+  .item-title a:active { border-bottom-color: var(--accent); }
+  .item-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .item-note-wrap { position: relative; margin-top: 4px; }
+  .item-note-input { display: block; width: 100%; font-size: 12px; font-style: italic; color: var(--text-2); line-height: 1.35; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; resize: none; overflow: hidden; padding: 0; margin: 0; -webkit-appearance: none; appearance: none; }
+  .item-note-display { position: absolute; inset: 0; font-size: 12px; font-style: italic; color: var(--text-2); line-height: 1.35; word-break: break-word; cursor: text; background: var(--card); }
+  .item-note-display.placeholder { color: var(--text-3); }
+  .item-note-display a { color: var(--accent); text-decoration: none; }
+  .item-note-wrap.editing .item-note-display { opacity: 0; pointer-events: none; }
+
+  .del-btn { flex-shrink: 0; width: 22px; height: 22px; border: none; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 2px; opacity: 0.55; }
+  .del-btn:active { color: var(--del); opacity: 1; }
+
+  .fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: 26px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; border: none; box-shadow: var(--shadow); font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
+  .fab:active { background: #5f2222; }
+
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(38,16,16,0.35); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+  .modal-backdrop.open { display: flex; }
+  .modal { width: 100%; max-width: 480px; background: var(--card); border-radius: 20px 20px 0 0; padding: 24px 22px calc(24px + env(safe-area-inset-bottom)); box-shadow: var(--shadow); }
+  .modal h3 { font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400; margin-bottom: 16px; }
+  .modal input { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-hd); color: var(--text); margin-bottom: 10px; outline: none; }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .modal-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-cancel { background: var(--card-hd); color: var(--text-2); }
+  .btn-create { background: var(--accent); color: #fff; }
+
+  .rate-pop { position: absolute; z-index: 40; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 8px; display: flex; gap: 4px; }
+  .rate-pop button { border: none; background: var(--card-hd); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 9px 11px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
+  .rate-pop button:active { background: var(--accent); color: #fff; }
+  .rate-pop button.dnf-opt { color: var(--text-2); }
+  .pop-backdrop { position: fixed; inset: 0; z-index: 39; display: none; }
+  .pop-backdrop.open { display: block; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>shelf</h1>
+    <div class="subtitle" id="subtitle">loading…</div>
+  </header>
+
+  <main>
+    <div>
+      <div class="section-head">
+        <h2>to be read<span class="section-count" id="tbr-count"></span></h2>
+      </div>
+      <div class="card" id="tbr-card"></div>
+    </div>
+
+    <div>
+      <div class="section-head">
+        <h2>finished<span class="section-count" id="fin-count"></span></h2>
+        <div class="sort-toggle">
+          <button id="sort-date" class="active" onclick="setSort('date')">recent</button>
+          <button id="sort-rating" onclick="setSort('rating')">rating</button>
+        </div>
+      </div>
+      <div class="card" id="fin-card"></div>
+    </div>
+  </main>
+
+  <button class="fab" onclick="openAddModal()">+</button>
+</div>
+
+<div class="modal-backdrop" id="add-backdrop">
+  <div class="modal">
+    <h3>add a book</h3>
+    <input id="add-title" type="text" placeholder="title" maxlength="140" autocomplete="off">
+    <input id="add-url" type="url" placeholder="link (optional)" maxlength="500" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddModal()">cancel</button>
+      <button class="btn-create" onclick="submitAdd()">add</button>
+    </div>
+  </div>
+</div>
+
+<div class="pop-backdrop" id="pop-backdrop" onclick="closeRatePop()"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAbOEAwN8HImczvJOlWd83F9HCsumTzXYw",
+  authDomain: "remember-this-658f8.firebaseapp.com",
+  projectId: "remember-this-658f8",
+  storageBucket: "remember-this-658f8.firebasestorage.app",
+  messagingSenderId: "990663353602",
+  appId: "1:990663353602:web:3615273902714207348e1b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const booksCol = collection(db, "books");
+
+let books = [];
+let sortMode = 'date'; // 'date' | 'rating'
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function linkify(text) {
+  const e = esc(text);
+  return e.replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+function ratingRank(b) {
+  if (b.rating === 'dnf') return -1;
+  return typeof b.rating === 'number' ? b.rating : -1;
+}
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function ratingLabel(b) {
+  if (b.rating === 'dnf') return '<span>DNF</span>';
+  const n = b.rating || 0;
+  return `<span class="stars">${'★'.repeat(n)}</span>`;
+}
+
+function updateSubtitle() {
+  const tbr = books.filter(b => b.status === 'toberead').length;
+  const fin = books.filter(b => b.status === 'finished').length;
+  document.getElementById('subtitle').textContent = `${tbr} to read · ${fin} finished`;
+  document.getElementById('tbr-count').textContent = tbr ? ` (${tbr})` : '';
+  document.getElementById('fin-count').textContent = fin ? ` (${fin})` : '';
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────
+
+function render() {
+  renderToBeRead();
+  renderFinished();
+  updateSubtitle();
+}
+
+function noteBlockHtml(b) {
+  const hasNote = b.note && b.note.trim().length;
+  const displayHtml = hasNote ? linkify(b.note) : 'add a note…';
+  return `
+    <div class="item-note-wrap" id="notewrap-${b.id}">
+      <textarea class="item-note-input" id="noteinput-${b.id}"
+        oninput="autoGrow(this)"
+        onfocus="startNoteEdit('${b.id}')"
+        onblur="saveNote('${b.id}', this.value)">${esc(b.note || '')}</textarea>
+      <div class="item-note-display ${hasNote ? '' : 'placeholder'}" id="notedisplay-${b.id}"
+        onclick="focusNote('${b.id}')">${displayHtml}</div>
+    </div>`;
+}
+
+function renderToBeRead() {
+  const card = document.getElementById('tbr-card');
+  const items = books.filter(b => b.status === 'toberead')
+    .slice().sort((a,b) => (b.addedAtMs||0) - (a.addedAtMs||0));
+
+  if (!items.length) {
+    card.innerHTML = `<div class="empty-hint">nothing on the shelf yet — tap + to add a book</div>`;
+    return;
+  }
+
+  card.innerHTML = items.map(b => `
+    <div class="item" id="item-${b.id}">
+      <button class="check-btn" onclick="openRatePop(event, '${b.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="4 12 10 18 20 6"/></svg>
+      </button>
+      <div class="item-body">
+        <div class="item-title">${b.url ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a>` : esc(b.title)}</div>
+        ${noteBlockHtml(b)}
+      </div>
+      <button class="del-btn" onclick="removeBook('${b.id}')" aria-label="delete">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      </button>
+    </div>`).join('');
+
+  items.forEach(b => sizeNoteInput(b.id));
+}
+
+function renderFinished() {
+  const card = document.getElementById('fin-card');
+  let items = books.filter(b => b.status === 'finished').slice();
+
+  if (sortMode === 'date') {
+    items.sort((a,b) => (b.completedAtMs||0) - (a.completedAtMs||0));
+  } else {
+    items.sort((a,b) => ratingRank(b) - ratingRank(a) || (b.completedAtMs||0) - (a.completedAtMs||0));
+  }
+
+  if (!items.length) {
+    card.innerHTML = `<div class="empty-hint">finished books will show up here</div>`;
+    return;
+  }
+
+  card.innerHTML = items.map(b => `
+    <div class="item" id="item-${b.id}">
+      <button class="rating-badge ${b.rating === 'dnf' ? 'dnf' : ''}" onclick="openRatePop(event, '${b.id}')">${ratingLabel(b)}</button>
+      <div class="item-body">
+        <div class="item-title">${b.url ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a>` : esc(b.title)}</div>
+        <div class="item-meta">${formatDate(b.completedAtMs)}</div>
+        ${noteBlockHtml(b)}
+      </div>
+      <button class="del-btn" onclick="removeBook('${b.id}')" aria-label="delete">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      </button>
+    </div>`).join('');
+
+  items.forEach(b => sizeNoteInput(b.id));
+}
+
+window.setSort = function(mode) {
+  sortMode = mode;
+  document.getElementById('sort-date').classList.toggle('active', mode === 'date');
+  document.getElementById('sort-rating').classList.toggle('active', mode === 'rating');
+  renderFinished();
+};
+
+// ── Notes: tap to edit, blur to save ────────────────────────────────────
+
+window.autoGrow = function(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
+
+function sizeNoteInput(id) {
+  const ta = document.getElementById(`noteinput-${id}`);
+  if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+}
+
+window.focusNote = function(id) {
+  const ta = document.getElementById(`noteinput-${id}`);
+  if (!ta) return;
+  ta.focus();
+  const len = ta.value.length;
+  ta.setSelectionRange(len, len);
+};
+
+window.startNoteEdit = function(id) {
+  const wrap = document.getElementById(`notewrap-${id}`);
+  if (wrap) wrap.classList.add('editing');
+};
+
+window.saveNote = async function(id, value) {
+  const wrap = document.getElementById(`notewrap-${id}`);
+  if (wrap) wrap.classList.remove('editing');
+  const book = books.find(b => b.id === id);
+  if (!book) return;
+  const trimmed = value.trim();
+  if (trimmed === (book.note || '')) return;
+  book.note = trimmed;
+  const disp = document.getElementById(`notedisplay-${id}`);
+  if (disp) {
+    disp.classList.toggle('placeholder', !trimmed);
+    disp.innerHTML = trimmed ? linkify(trimmed) : 'add a note…';
+  }
+  try {
+    await updateDoc(doc(db, 'books', id), { note: trimmed });
+  } catch (e) { console.error(e); }
+};
+
+// ── Add book ─────────────────────────────────────────────────────────────
+
+window.openAddModal = function() {
+  document.getElementById('add-title').value = '';
+  document.getElementById('add-url').value = '';
+  document.getElementById('add-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('add-title').focus(), 50);
+};
+window.closeAddModal = function() {
+  document.getElementById('add-backdrop').classList.remove('open');
+};
+window.submitAdd = async function() {
+  const title = document.getElementById('add-title').value.trim();
+  const url = document.getElementById('add-url').value.trim();
+  if (!title) return;
+  closeAddModal();
+  try {
+    await addDoc(booksCol, {
+      title, url: url || null, note: '', status: 'toberead',
+      rating: null, addedAt: serverTimestamp(), completedAt: null
+    });
+  } catch (e) { console.error(e); }
+};
+document.getElementById('add-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'add-backdrop') closeAddModal();
+});
+
+// ── Rating popover ──────────────────────────────────────────────────────
+
+let activePop = null;
+
+window.openRatePop = function(evt, id) {
+  closeRatePop();
+  const btn = evt.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'rate-pop';
+  pop.innerHTML = `
+    <button onclick="rateBook('${id}', 1)">★</button>
+    <button onclick="rateBook('${id}', 2)">★★</button>
+    <button onclick="rateBook('${id}', 3)">★★★</button>
+    <button class="dnf-opt" onclick="rateBook('${id}', 'dnf')">DNF</button>`;
+  document.body.appendChild(pop);
+
+  const top = window.scrollY + rect.bottom + 6;
+  let left = window.scrollX + rect.left;
+  document.body.style.overflow = '';
+  pop.style.top = top + 'px';
+  pop.style.left = left + 'px';
+  const maxLeft = window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 10;
+  if (left > maxLeft) pop.style.left = Math.max(10, maxLeft) + 'px';
+
+  document.getElementById('pop-backdrop').classList.add('open');
+  activePop = pop;
+};
+
+window.closeRatePop = function() {
+  if (activePop) { activePop.remove(); activePop = null; }
+  document.getElementById('pop-backdrop').classList.remove('open');
+};
+
+window.rateBook = async function(id, rating) {
+  closeRatePop();
+  const book = books.find(b => b.id === id);
+  if (!book) return;
+  const wasFinished = book.status === 'finished';
+  book.rating = rating;
+  book.status = 'finished';
+  const updates = { rating, status: 'finished' };
+  if (!wasFinished) {
+    const now = Date.now();
+    book.completedAtMs = now;
+    updates.completedAt = serverTimestamp();
+  }
+  render();
+  try {
+    await updateDoc(doc(db, 'books', id), updates);
+  } catch (e) { console.error(e); }
+};
+
+// ── Delete ───────────────────────────────────────────────────────────────
+
+window.removeBook = async function(id) {
+  const book = books.find(b => b.id === id);
+  if (!book) return;
+  if (!confirm(`Remove "${book.title}"?`)) return;
+  try {
+    await deleteDoc(doc(db, 'books', id));
+  } catch (e) { console.error(e); }
+};
+
+// ── Firestore sync ───────────────────────────────────────────────────────
+
+onSnapshot(query(booksCol), (snap) => {
+  books = snap.docs.map(d => {
+    const data = d.data();
+    return {
+      id: d.id,
+      title: data.title || '',
+      url: data.url || null,
+      note: data.note || '',
+      status: data.status || 'toberead',
+      rating: data.rating ?? null,
+      addedAtMs: data.addedAt?.toMillis ? data.addedAt.toMillis() : (data.addedAt || 0),
+      completedAtMs: data.completedAt?.toMillis ? data.completedAt.toMillis() : (data.completedAt || 0)
+    };
+  });
+  render();
+}, (err) => {
+  console.error(err);
+  document.getElementById('subtitle').textContent = 'connection error';
+});
+</script>
+</body>
+</html>
