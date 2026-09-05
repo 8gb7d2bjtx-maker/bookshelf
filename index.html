@@ -52,9 +52,10 @@
   .item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--border-lt); position: relative; }
   .item:first-child { border-top: none; }
 
-  .check-btn { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: 1.6px solid var(--text-3); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 1px; transition: border-color .15s, background .15s; }
-  .check-btn:active { background: var(--badge-bg); border-color: var(--accent); }
-  .check-btn svg { opacity: 0; width: 13px; height: 13px; }
+  .check-btn, .unread-btn { flex-shrink: 0; width: 22px; height: 22px; border: none; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 2px; opacity: 0.7; }
+  .check-btn:active, .unread-btn:active { color: var(--accent); opacity: 1; }
+  .check-btn svg, .unread-btn svg { width: 16px; height: 16px; }
+  .unread-btn svg { transform: rotate(90deg); }
 
   .rating-badge { flex-shrink: 0; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 13px; background: var(--badge-bg); color: var(--badge-txt); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin-top: 1px; cursor: pointer; border: none; letter-spacing: 0.3px; }
   .rating-badge.dnf { background: #ece0e0; color: var(--text-2); font-size: 9.5px; letter-spacing: 0.5px; }
@@ -65,9 +66,6 @@
   .item-title a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
   .item-title a:active { border-bottom-color: var(--accent); }
   .item-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
-
-  .del-btn { flex-shrink: 0; width: 22px; height: 22px; border: none; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 2px; opacity: 0.55; }
-  .del-btn:active { color: var(--del); opacity: 1; }
 
   .fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: 26px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; border: none; box-shadow: var(--shadow); font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
   .fab:active { background: #5f2222; }
@@ -84,6 +82,8 @@
   .modal-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
   .btn-cancel { background: var(--card-hd); color: var(--text-2); }
   .btn-create { background: var(--accent); color: #fff; }
+  .btn-delete { background: var(--card-hd); color: var(--del); }
+  .btn-delete[hidden] { display: none; }
 
   .rate-pop { position: absolute; z-index: 40; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 8px; display: flex; gap: 4px; }
   .rate-pop button { border: none; background: var(--card-hd); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 9px 11px; border-radius: 9px; cursor: pointer; white-space: nowrap; }
@@ -130,6 +130,7 @@
     <input id="add-url" type="url" placeholder="link (optional)" maxlength="500" autocomplete="off">
     <textarea id="add-note" placeholder="note (optional)" maxlength="2000"></textarea>
     <div class="modal-actions">
+      <button class="btn-delete" id="modal-delete-btn" onclick="deleteFromModal()" hidden>delete</button>
       <button class="btn-cancel" onclick="closeAddModal()">cancel</button>
       <button class="btn-create" id="modal-submit-btn" onclick="submitAdd()">add</button>
     </div>
@@ -210,14 +211,11 @@ function renderToBeRead() {
 
   card.innerHTML = items.map(b => `
     <div class="item" id="item-${b.id}">
-      <button class="check-btn" onclick="openRatePop(event, '${b.id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="4 12 10 18 20 6"/></svg>
-      </button>
       <div class="item-body">
         <div class="item-title" onclick="handleTitleTap(event, '${b.id}')">${b.url ? `<a href="${esc(b.url)}">${esc(b.title)}</a>` : esc(b.title)}</div>
       </div>
-      <button class="del-btn" onclick="removeBook('${b.id}')" aria-label="delete">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      <button class="check-btn" onclick="openRatePop(event, '${b.id}')" aria-label="mark finished">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
       </button>
     </div>`).join('');
 }
@@ -244,8 +242,8 @@ function renderFinished() {
         <div class="item-title" onclick="handleTitleTap(event, '${b.id}')">${b.url ? `<a href="${esc(b.url)}">${esc(b.title)}</a>` : esc(b.title)}</div>
         <div class="item-meta">${formatDate(b.completedAtMs)}</div>
       </div>
-      <button class="del-btn" onclick="removeBook('${b.id}')" aria-label="delete">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      <button class="unread-btn" onclick="markUnread('${b.id}')" aria-label="mark as unread">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
       </button>
     </div>`).join('');
 }
@@ -289,6 +287,7 @@ window.openAddModal = function() {
   editingId = null;
   document.getElementById('modal-heading').textContent = 'add a book';
   document.getElementById('modal-submit-btn').textContent = 'add';
+  document.getElementById('modal-delete-btn').hidden = true;
   document.getElementById('add-title').value = '';
   document.getElementById('add-url').value = '';
   document.getElementById('add-note').value = '';
@@ -302,6 +301,7 @@ window.openEditModal = function(id) {
   editingId = id;
   document.getElementById('modal-heading').textContent = 'edit book';
   document.getElementById('modal-submit-btn').textContent = 'save';
+  document.getElementById('modal-delete-btn').hidden = false;
   document.getElementById('add-title').value = book.title || '';
   document.getElementById('add-url').value = book.url || '';
   document.getElementById('add-note').value = book.note || '';
@@ -391,7 +391,26 @@ window.rateBook = async function(id, rating) {
   } catch (e) { console.error(e); }
 };
 
+window.markUnread = async function(id) {
+  const book = books.find(b => b.id === id);
+  if (!book) return;
+  book.status = 'toberead';
+  book.rating = null;
+  book.completedAtMs = 0;
+  render();
+  try {
+    await updateDoc(doc(db, 'books', id), { status: 'toberead', rating: null, completedAt: null });
+  } catch (e) { console.error(e); }
+};
+
 // ── Delete ───────────────────────────────────────────────────────────────
+
+window.deleteFromModal = function() {
+  const id = editingId;
+  if (!id) return;
+  closeAddModal();
+  removeBook(id);
+};
 
 window.removeBook = async function(id) {
   const book = books.find(b => b.id === id);
