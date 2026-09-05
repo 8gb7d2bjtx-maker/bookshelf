@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="shelf">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>shelf</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -64,13 +66,6 @@
   .item-title a:active { border-bottom-color: var(--accent); }
   .item-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 
-  .item-note-wrap { position: relative; margin-top: 4px; }
-  .item-note-input { display: block; width: 100%; font-size: 12px; font-style: italic; color: var(--text-2); line-height: 1.35; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; resize: none; overflow: hidden; padding: 0; margin: 0; -webkit-appearance: none; appearance: none; }
-  .item-note-display { position: absolute; inset: 0; font-size: 12px; font-style: italic; color: var(--text-2); line-height: 1.35; word-break: break-word; cursor: text; background: var(--card); }
-  .item-note-display.placeholder { color: var(--text-3); }
-  .item-note-display a { color: var(--accent); text-decoration: none; }
-  .item-note-wrap.editing .item-note-display { opacity: 0; pointer-events: none; }
-
   .del-btn { flex-shrink: 0; width: 22px; height: 22px; border: none; background: transparent; color: var(--text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 2px; opacity: 0.55; }
   .del-btn:active { color: var(--del); opacity: 1; }
 
@@ -83,6 +78,8 @@
   .modal h3 { font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400; margin-bottom: 16px; }
   .modal input { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-hd); color: var(--text); margin-bottom: 10px; outline: none; }
   .modal input:focus { border-color: var(--accent); }
+  .modal textarea { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-hd); color: var(--text); margin-bottom: 10px; outline: none; resize: none; min-height: 70px; }
+  .modal textarea:focus { border-color: var(--accent); }
   .modal-actions { display: flex; gap: 10px; margin-top: 6px; }
   .modal-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
   .btn-cancel { background: var(--card-hd); color: var(--text-2); }
@@ -128,12 +125,13 @@
 
 <div class="modal-backdrop" id="add-backdrop">
   <div class="modal">
-    <h3>add a book</h3>
+    <h3 id="modal-heading">add a book</h3>
     <input id="add-title" type="text" placeholder="title" maxlength="140" autocomplete="off">
     <input id="add-url" type="url" placeholder="link (optional)" maxlength="500" autocomplete="off">
+    <textarea id="add-note" placeholder="note (optional)" maxlength="2000"></textarea>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeAddModal()">cancel</button>
-      <button class="btn-create" onclick="submitAdd()">add</button>
+      <button class="btn-create" id="modal-submit-btn" onclick="submitAdd()">add</button>
     </div>
   </div>
 </div>
@@ -200,20 +198,6 @@ function render() {
   updateSubtitle();
 }
 
-function noteBlockHtml(b) {
-  const hasNote = b.note && b.note.trim().length;
-  const displayHtml = hasNote ? linkify(b.note) : 'add a note…';
-  return `
-    <div class="item-note-wrap" id="notewrap-${b.id}">
-      <textarea class="item-note-input" id="noteinput-${b.id}"
-        oninput="autoGrow(this)"
-        onfocus="startNoteEdit('${b.id}')"
-        onblur="saveNote('${b.id}', this.value)">${esc(b.note || '')}</textarea>
-      <div class="item-note-display ${hasNote ? '' : 'placeholder'}" id="notedisplay-${b.id}"
-        onclick="focusNote('${b.id}')">${displayHtml}</div>
-    </div>`;
-}
-
 function renderToBeRead() {
   const card = document.getElementById('tbr-card');
   const items = books.filter(b => b.status === 'toberead')
@@ -230,15 +214,12 @@ function renderToBeRead() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="4 12 10 18 20 6"/></svg>
       </button>
       <div class="item-body">
-        <div class="item-title">${b.url ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a>` : esc(b.title)}</div>
-        ${noteBlockHtml(b)}
+        <div class="item-title" onclick="handleTitleTap(event, '${b.id}')">${b.url ? `<a href="${esc(b.url)}">${esc(b.title)}</a>` : esc(b.title)}</div>
       </div>
       <button class="del-btn" onclick="removeBook('${b.id}')" aria-label="delete">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
       </button>
     </div>`).join('');
-
-  items.forEach(b => sizeNoteInput(b.id));
 }
 
 function renderFinished() {
@@ -260,16 +241,13 @@ function renderFinished() {
     <div class="item" id="item-${b.id}">
       <button class="rating-badge ${b.rating === 'dnf' ? 'dnf' : ''}" onclick="openRatePop(event, '${b.id}')">${ratingLabel(b)}</button>
       <div class="item-body">
-        <div class="item-title">${b.url ? `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a>` : esc(b.title)}</div>
+        <div class="item-title" onclick="handleTitleTap(event, '${b.id}')">${b.url ? `<a href="${esc(b.url)}">${esc(b.title)}</a>` : esc(b.title)}</div>
         <div class="item-meta">${formatDate(b.completedAtMs)}</div>
-        ${noteBlockHtml(b)}
       </div>
       <button class="del-btn" onclick="removeBook('${b.id}')" aria-label="delete">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
       </button>
     </div>`).join('');
-
-  items.forEach(b => sizeNoteInput(b.id));
 }
 
 window.setSort = function(mode) {
@@ -279,70 +257,81 @@ window.setSort = function(mode) {
   renderFinished();
 };
 
-// ── Notes: tap to edit, blur to save ────────────────────────────────────
+// ── Title double-tap to edit ─────────────────────────────────────────────
 
-window.autoGrow = function(el) {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-};
+let lastTap = {};
+let tapTimers = {};
 
-function sizeNoteInput(id) {
-  const ta = document.getElementById(`noteinput-${id}`);
-  if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
-}
-
-window.focusNote = function(id) {
-  const ta = document.getElementById(`noteinput-${id}`);
-  if (!ta) return;
-  ta.focus();
-  const len = ta.value.length;
-  ta.setSelectionRange(len, len);
-};
-
-window.startNoteEdit = function(id) {
-  const wrap = document.getElementById(`notewrap-${id}`);
-  if (wrap) wrap.classList.add('editing');
-};
-
-window.saveNote = async function(id, value) {
-  const wrap = document.getElementById(`notewrap-${id}`);
-  if (wrap) wrap.classList.remove('editing');
-  const book = books.find(b => b.id === id);
-  if (!book) return;
-  const trimmed = value.trim();
-  if (trimmed === (book.note || '')) return;
-  book.note = trimmed;
-  const disp = document.getElementById(`notedisplay-${id}`);
-  if (disp) {
-    disp.classList.toggle('placeholder', !trimmed);
-    disp.innerHTML = trimmed ? linkify(trimmed) : 'add a note…';
+window.handleTitleTap = function(evt, id) {
+  evt.preventDefault();
+  const now = Date.now();
+  const last = lastTap[id] || 0;
+  const delta = now - last;
+  lastTap[id] = now;
+  if (delta > 0 && delta < 350) {
+    lastTap[id] = 0;
+    if (tapTimers[id]) { clearTimeout(tapTimers[id]); delete tapTimers[id]; }
+    openEditModal(id);
+  } else {
+    const book = books.find(b => b.id === id);
+    tapTimers[id] = setTimeout(() => {
+      delete tapTimers[id];
+      if (book && book.url) window.open(book.url, '_blank', 'noopener,noreferrer');
+    }, 350);
   }
-  try {
-    await updateDoc(doc(db, 'books', id), { note: trimmed });
-  } catch (e) { console.error(e); }
 };
 
-// ── Add book ─────────────────────────────────────────────────────────────
+// ── Add / edit book modal ────────────────────────────────────────────────
+
+let editingId = null;
 
 window.openAddModal = function() {
+  editingId = null;
+  document.getElementById('modal-heading').textContent = 'add a book';
+  document.getElementById('modal-submit-btn').textContent = 'add';
   document.getElementById('add-title').value = '';
   document.getElementById('add-url').value = '';
+  document.getElementById('add-note').value = '';
   document.getElementById('add-backdrop').classList.add('open');
   setTimeout(() => document.getElementById('add-title').focus(), 50);
 };
+
+window.openEditModal = function(id) {
+  const book = books.find(b => b.id === id);
+  if (!book) return;
+  editingId = id;
+  document.getElementById('modal-heading').textContent = 'edit book';
+  document.getElementById('modal-submit-btn').textContent = 'save';
+  document.getElementById('add-title').value = book.title || '';
+  document.getElementById('add-url').value = book.url || '';
+  document.getElementById('add-note').value = book.note || '';
+  document.getElementById('add-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('add-title').focus(), 50);
+};
+
 window.closeAddModal = function() {
   document.getElementById('add-backdrop').classList.remove('open');
+  editingId = null;
 };
+
 window.submitAdd = async function() {
   const title = document.getElementById('add-title').value.trim();
   const url = document.getElementById('add-url').value.trim();
+  const note = document.getElementById('add-note').value.trim();
   if (!title) return;
+  const id = editingId;
   closeAddModal();
   try {
-    await addDoc(booksCol, {
-      title, url: url || null, note: '', status: 'toberead',
-      rating: null, addedAt: serverTimestamp(), completedAt: null
-    });
+    if (id) {
+      const book = books.find(b => b.id === id);
+      if (book) { book.title = title; book.url = url || null; book.note = note; }
+      await updateDoc(doc(db, 'books', id), { title, url: url || null, note });
+    } else {
+      await addDoc(booksCol, {
+        title, url: url || null, note, status: 'toberead',
+        rating: null, addedAt: serverTimestamp(), completedAt: null
+      });
+    }
   } catch (e) { console.error(e); }
 };
 document.getElementById('add-backdrop').addEventListener('click', (e) => {
