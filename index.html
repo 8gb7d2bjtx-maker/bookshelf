@@ -65,7 +65,10 @@
   .item-title { font-size: 14.5px; font-weight: 500; color: var(--text); line-height: 1.35; word-break: break-word; }
   .item-title a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
   .item-title a:active { border-bottom-color: var(--accent); }
-  .item-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .item-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; word-break: break-word; }
+  .item-meta a { color: var(--accent); }
+  .item-note { font-size: 12px; font-style: italic; color: var(--text-2); margin-top: 3px; line-height: 1.35; word-break: break-word; }
+  .item-note a { color: var(--accent); text-decoration: none; }
 
   .fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: 26px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; border: none; box-shadow: var(--shadow); font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
   .fab:active { background: #5f2222; }
@@ -213,6 +216,7 @@ function renderToBeRead() {
     <div class="item" id="item-${b.id}">
       <div class="item-body">
         <div class="item-title" onclick="handleTitleTap(event, '${b.id}')">${b.url ? `<a href="${esc(b.url)}">${esc(b.title)}</a>` : esc(b.title)}</div>
+        ${b.note ? `<div class="item-note">${linkify(b.note)}</div>` : ''}
       </div>
       <button class="check-btn" onclick="openRatePop(event, '${b.id}')" aria-label="mark finished">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"/></svg>
@@ -240,7 +244,7 @@ function renderFinished() {
       <button class="rating-badge ${b.rating === 'dnf' ? 'dnf' : ''}" onclick="openRatePop(event, '${b.id}')">${ratingLabel(b)}</button>
       <div class="item-body">
         <div class="item-title" onclick="handleTitleTap(event, '${b.id}')">${b.url ? `<a href="${esc(b.url)}">${esc(b.title)}</a>` : esc(b.title)}</div>
-        <div class="item-meta">${formatDate(b.completedAtMs)}</div>
+        <div class="item-meta">${formatDate(b.completedAtMs)}${b.note ? ` • ${linkify(b.note)}` : ''}</div>
       </div>
       <button class="unread-btn" onclick="markUnread('${b.id}')" aria-label="mark as unread">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
