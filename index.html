@@ -144,7 +144,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAbOEAwN8HImczvJOlWd83F9HCsumTzXYw",
@@ -333,7 +333,7 @@ window.submitAdd = async function() {
     } else {
       await addDoc(booksCol, {
         title, url: url || null, note, status: 'toberead',
-        rating: null, addedAt: serverTimestamp(), completedAt: null
+        rating: null, addedAt: Date.now(), completedAt: null
       });
     }
   } catch (e) { console.error(e); }
@@ -387,7 +387,7 @@ window.rateBook = async function(id, rating) {
   if (!wasFinished) {
     const now = Date.now();
     book.completedAtMs = now;
-    updates.completedAt = serverTimestamp();
+    updates.completedAt = now;
   }
   render();
   try {
