@@ -329,7 +329,7 @@ window.submitAdd = async function() {
     if (id) {
       const book = books.find(b => b.id === id);
       if (book) { book.title = title; book.url = url || null; book.note = note; }
-      await updateDoc(doc(db, 'books', id), { title, url: url || null, note });
+      await updateDoc(doc(booksCol, id), { title, url: url || null, note });
     } else {
       await addDoc(booksCol, {
         title, url: url || null, note, status: 'toberead',
@@ -391,7 +391,7 @@ window.rateBook = async function(id, rating) {
   }
   render();
   try {
-    await updateDoc(doc(db, 'books', id), updates);
+    await updateDoc(doc(booksCol, id), updates);
   } catch (e) { console.error(e); }
 };
 
@@ -403,7 +403,7 @@ window.markUnread = async function(id) {
   book.completedAtMs = 0;
   render();
   try {
-    await updateDoc(doc(db, 'books', id), { status: 'toberead', rating: null, completedAt: null });
+    await updateDoc(doc(booksCol, id), { status: 'toberead', rating: null, completedAt: null });
   } catch (e) { console.error(e); }
 };
 
@@ -421,7 +421,7 @@ window.removeBook = async function(id) {
   if (!book) return;
   if (!confirm(`Remove "${book.title}"?`)) return;
   try {
-    await deleteDoc(doc(db, 'books', id));
+    await deleteDoc(doc(booksCol, id));
   } catch (e) { console.error(e); }
 };
 
